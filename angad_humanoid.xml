@@ -1,0 +1,365 @@
+<?xml version="1.0"?>
+<!--
+  angad_humanoid.xml — MuJoCo MJCF Model for Angad Full Assembly Humanoid
+  ========================================================================
+  All 23 joints with exact axes, limits, and positions from the URDF.
+  Uses primitive geometries (capsules/boxes/spheres) for reliable physics.
+  
+  Joint names match exactly with the ROS2 controllers and IK solver:
+    Legs (12):  hip_pitch_l/r, thigh_roll_l/r, thigh_yaw_l/r,
+                knee_pitch_l/r, ankle_pitch_l/r, ankle_roll_l/r
+    Torso (3):  torso_pitch, torso_roll, torso_yaw
+    Arms (8):   shoulder_pitch_l/r, shoulder_roll_l/r,
+                elbow_yaw_l/r, elbow_pitch_l/r
+  
+  To enable free walking (instead of fixed base):
+    Add <freejoint name="root"/> inside the base_link body.
+-->
+<mujoco model="angad_humanoid">
+
+  <!-- ═══════════════ COMPILER ═══════════════ -->
+  <compiler angle="radian" eulerseq="XYZ"/>
+
+  <!-- ═══════════════ OPTIONS ═══════════════ -->
+  <option timestep="0.002" gravity="0 0 -9.81"/>
+
+  <!-- ═══════════════ DEFAULTS ═══════════════ -->
+  <default>
+    <joint damping="20.0" armature="0.1" limited="true"/>
+    <geom condim="3" contype="1" conaffinity="1" friction="1.0 0.005 0.001"/>
+    <position kp="1000" forcerange="-1000 1000" ctrllimited="true"/>
+  </default>
+
+  <!-- ═══════════════ VISUAL ═══════════════ -->
+  <visual>
+    <headlight ambient="0.25 0.25 0.28" diffuse="0.6 0.6 0.6" specular="0.3 0.3 0.3"/>
+    <rgba haze="0.15 0.2 0.33 1"/>
+    <global offwidth="1920" offheight="1080"/>
+  </visual>
+
+  <!-- ═══════════════ ASSETS ═══════════════ -->
+  <asset>
+    <texture type="2d" name="floor_tex" builtin="checker"
+             rgb1="0.08 0.09 0.10" rgb2="0.14 0.15 0.16"
+             width="512" height="512"/>
+    <material name="floor_mat" texture="floor_tex" texrepeat="10 10"
+              texuniform="true" reflectance="0.15"/>
+
+    <!-- Robot materials -->
+    <material name="pelvis_mat"  rgba="0.30 0.32 0.36 1" specular="0.6" shininess="0.4"/>
+    <material name="torso_mat"   rgba="0.35 0.38 0.42 1" specular="0.6" shininess="0.4"/>
+    <material name="left_mat"    rgba="0.22 0.45 0.75 1" specular="0.5" shininess="0.3"/>
+    <material name="right_mat"   rgba="0.75 0.30 0.22 1" specular="0.5" shininess="0.3"/>
+    <material name="joint_mat"   rgba="0.50 0.52 0.55 1" specular="0.7" shininess="0.6"/>
+    <material name="foot_mat"    rgba="0.12 0.12 0.14 1" specular="0.4" shininess="0.2"/>
+    <material name="head_mat"    rgba="0.40 0.42 0.45 1" specular="0.6" shininess="0.5"/>
+  </asset>
+
+  <!-- ═══════════════ WORLD ═══════════════ -->
+  <worldbody>
+
+    <!-- Ground plane -->
+    <geom name="floor" type="plane" size="5 5 0.02" material="floor_mat"/>
+
+    <!-- Lighting -->
+    <light name="top" pos="0 0 4" dir="0 0 -1" directional="true"
+           castshadow="true" diffuse="0.5 0.5 0.5" specular="0.2 0.2 0.2"/>
+    <light name="front_right" pos="2 -2 3" dir="-0.4 0.4 -0.7"
+           diffuse="0.35 0.35 0.35" specular="0.15 0.15 0.15"/>
+    <light name="front_left" pos="-2 -2 3" dir="0.4 0.4 -0.7"
+           diffuse="0.2 0.2 0.2"/>
+
+    <!-- ════════════════════════════════════════════════════════
+         ROBOT: Angad Full Assembly Humanoid
+         Base at world origin. Hip joints at z≈0.804, feet at z≈0.05.
+         ════════════════════════════════════════════════════════ -->
+    <body name="base_link" pos="0 0 0">
+      <!-- Support mechanism to prevent falling over:
+           Allows X, Y, Z translation and Yaw rotation, but prevents Pitch/Roll. -->
+      <joint name="root_x" type="slide" axis="1 0 0" limited="false"/>
+      <joint name="root_y" type="slide" axis="0 1 0" limited="false"/>
+      <joint name="root_z" type="slide" axis="0 0 1" limited="false"/>
+      <joint name="root_yaw" type="hinge" axis="0 0 1" limited="false"/>
+
+      <!-- Pelvis visual (centered between hip joints) -->
+      <geom name="pelvis" type="box" size="0.08 0.07 0.035"
+            pos="0 0 0.82" material="pelvis_mat" mass="5.565"/>
+
+      <!-- ══════════════════════════════════════════
+           LEFT LEG
+           Chain: hip → thigh_roll → thigh_yaw → knee → ankle → foot
+           ══════════════════════════════════════════ -->
+      <body name="hip_L_1" pos="0.06406 0 0.80394">
+        <joint name="hip_pitch_l" type="hinge"
+               axis="-0.939693 0 0.34202" range="-1.57 1.57" damping="8.0"/>
+        <geom name="hip_l" type="sphere" size="0.042"
+              material="joint_mat" mass="1.008"/>
+
+        <body name="thigh_L_1" pos="0.07423 0.0315 -0.027037">
+          <joint name="thigh_roll_l" type="hinge"
+                 axis="0 1 0" range="-0.5 0.5"/>
+          <geom name="thigh_l" type="capsule"
+                fromto="0 0 0  0.000005 -0.026332 -0.156586"
+                size="0.038" material="left_mat" mass="1.319"/>
+
+          <body name="upper_knee_L_1" pos="0.000005 -0.026332 -0.156586">
+            <joint name="thigh_yaw_l" type="hinge"
+                   axis="0 0 -1" range="-0.5 0.5"/>
+            <geom name="upper_knee_l" type="capsule"
+                  fromto="0 0 0  0.027 -0.000135 -0.2097"
+                  size="0.036" material="left_mat" mass="2.264"/>
+
+            <body name="lower_knee_L_1" pos="0.027 -0.000135 -0.2097">
+              <joint name="knee_pitch_l" type="hinge"
+                     axis="1 0 0" range="-2.0 2.0" damping="8.0"/>
+              <geom name="shin_l" type="capsule"
+                    fromto="0 0 0  0.004026 0.025698 -0.362979"
+                    size="0.030" material="left_mat" mass="1.446"/>
+
+              <body name="ankle_L_1" pos="0.004026 0.025698 -0.362979">
+                <joint name="ankle_pitch_l" type="hinge"
+                       axis="1 0 0" range="-1.0 1.0"/>
+                <geom name="ankle_l" type="sphere" size="0.024"
+                      material="joint_mat" mass="0.108"/>
+
+                <body name="feet_L_1" pos="-0.027965 0.038725 0.000137">
+                  <joint name="ankle_roll_l" type="hinge"
+                         axis="0 -1 0" range="-0.5 0.5"/>
+                  <geom name="foot_l" type="box"
+                        size="0.055 0.035 0.012"
+                        pos="0.01 -0.03 -0.015"
+                        material="foot_mat" mass="0.365"/>
+                </body>
+              </body>
+            </body>
+          </body>
+        </body>
+      </body>
+
+      <!-- ══════════════════════════════════════════
+           RIGHT LEG
+           ══════════════════════════════════════════ -->
+      <body name="hip_R_1" pos="-0.06406 0 0.80394">
+        <joint name="hip_pitch_r" type="hinge"
+               axis="0.939693 0 0.34202" range="-1.57 1.57" damping="8.0"/>
+        <geom name="hip_r" type="sphere" size="0.042"
+              material="joint_mat" mass="1.008"/>
+
+        <body name="thigh_R_1" pos="-0.074203 0.0315 -0.02711">
+          <joint name="thigh_roll_r" type="hinge"
+                 axis="0 1 0" range="-0.5 0.5"/>
+          <geom name="thigh_r" type="capsule"
+                fromto="0 0 0  -0.003714 -0.026692 -0.156481"
+                size="0.038" material="right_mat" mass="1.319"/>
+
+          <body name="upper_knee_R_1" pos="-0.003714 -0.026692 -0.156481">
+            <joint name="thigh_yaw_r" type="hinge"
+                   axis="0 0 -1" range="-0.5 0.5"/>
+            <geom name="upper_knee_r" type="capsule"
+                  fromto="0 0 0  -0.03029 -0.003264 -0.209036"
+                  size="0.036" material="right_mat" mass="2.264"/>
+
+            <body name="lower_knee_R_1" pos="-0.03029 -0.003264 -0.209036">
+              <joint name="knee_pitch_r" type="hinge"
+                     axis="1 0 0" range="-2.0 2.0" damping="8.0"/>
+              <geom name="shin_r" type="capsule"
+                    fromto="0 0 0  -0.015197 0.0239 -0.362807"
+                    size="0.030" material="right_mat" mass="1.446"/>
+
+              <body name="ankle_R_1" pos="-0.015197 0.0239 -0.362807">
+                <joint name="ankle_pitch_r" type="hinge"
+                       axis="1 0 0" range="-1.0 1.0"/>
+                <geom name="ankle_r" type="sphere" size="0.024"
+                      material="joint_mat" mass="0.108"/>
+
+                <body name="feet_R_1" pos="0.023748 0.04172 -0.000679">
+                  <joint name="ankle_roll_r" type="hinge"
+                         axis="0 -1 0" range="-0.5 0.5"/>
+                  <geom name="foot_r" type="box"
+                        size="0.055 0.035 0.012"
+                        pos="-0.01 -0.03 -0.015"
+                        material="foot_mat" mass="0.365"/>
+                </body>
+              </body>
+            </body>
+          </body>
+        </body>
+      </body>
+
+      <!-- ══════════════════════════════════════════
+           TORSO (3-DOF: pitch → roll → yaw)
+           ══════════════════════════════════════════ -->
+      <body name="torso_pitch_link" pos="0 0 0.883471">
+        <joint name="torso_pitch" type="hinge"
+               axis="0 1 0" range="-1.57 1.57" damping="6.0"/>
+        <inertial pos="0 0 0" mass="0.01"
+                  diaginertia="0.0001 0.0001 0.0001"/>
+
+        <body name="torso_roll_link" pos="0 0 0">
+          <joint name="torso_roll" type="hinge"
+                 axis="1 0 0" range="-1.57 1.57" damping="6.0"/>
+          <inertial pos="0 0 0" mass="0.01"
+                    diaginertia="0.0001 0.0001 0.0001"/>
+
+          <body name="Torso_1" pos="0 0 0">
+            <joint name="torso_yaw" type="hinge"
+                   axis="0 0 1" range="-1.57 1.57" damping="6.0"/>
+            <!-- Chest -->
+            <geom name="chest" type="box" size="0.11 0.075 0.15"
+                  pos="0 0 0.18" material="torso_mat" mass="4.0"/>
+            <!-- Neck + Head (2-DOF: pitch → yaw) -->
+            <geom name="neck" type="capsule" fromto="0 0 0.33 0 0 0.38"
+                  size="0.025" material="joint_mat" mass="0.2"/>
+
+            <body name="head_link" pos="0 0 0.38">
+              <inertial pos="0 0 0.03" mass="0.1"
+                        diaginertia="0.0001 0.0001 0.0001"/>
+              <joint name="neck_pitch" type="hinge"
+                     axis="0 1 0" range="-0.7 0.7" damping="2.0"/>
+
+              <body name="head_yaw_link" pos="0 0 0">
+                <joint name="neck_yaw" type="hinge"
+                       axis="0 0 1" range="-1.2 1.2" damping="2.0"/>
+                <!-- Head: box shape so rotation is visible -->
+                <geom name="head" type="box" size="0.055 0.05 0.065"
+                      pos="0 0 0.06" material="head_mat" mass="0.329"
+                      contype="0" conaffinity="0"/>
+                <!-- Eyes (blue spheres — show yaw direction) -->
+                <geom name="eye_l" type="sphere" size="0.012"
+                      pos="0.025 0.05 0.07" rgba="0.2 0.4 0.9 1"
+                      contype="0" conaffinity="0" mass="0.001"/>
+                <geom name="eye_r" type="sphere" size="0.012"
+                      pos="-0.025 0.05 0.07" rgba="0.2 0.4 0.9 1"
+                      contype="0" conaffinity="0" mass="0.001"/>
+                <!-- Nose (small capsule — shows pitch direction) -->
+                <geom name="nose" type="capsule" size="0.008"
+                      fromto="0 0.05 0.055  0 0.06 0.045"
+                      rgba="0.8 0.5 0.4 1"
+                      contype="0" conaffinity="0" mass="0.001"/>
+              </body>
+            </body>
+
+            <!-- ════════ LEFT ARM ════════ -->
+            <body name="shoulder_pitch_L_1" pos="0.142972 0.003567 0.324503">
+              <joint name="shoulder_pitch_l" type="hinge"
+                     axis="0.999681 0.025268 0" range="-3.14159 3.14159"
+                     damping="3.0"/>
+              <geom name="shoulder_l" type="sphere" size="0.032"
+                    material="joint_mat" mass="0.929"/>
+
+              <body name="shoulder_roll_L_1" pos="0.075975 -0.017836 0">
+                <joint name="shoulder_roll_l" type="hinge"
+                       axis="0.025268 -0.999681 0" range="0 2.792527"
+                       damping="2.0"/>
+                <geom name="upper_arm_l" type="capsule"
+                      fromto="0 0 0  0.018194 0.024718 -0.106693"
+                      size="0.026" material="left_mat" mass="0.64"/>
+
+                <body name="bicep_L_1" pos="0.018194 0.024718 -0.106693">
+                  <joint name="elbow_yaw_l" type="hinge"
+                         axis="0.173593 0.004388 -0.984808"
+                         range="-3.14159 3.14159" damping="1.5"/>
+                  <geom name="bicep_l" type="capsule"
+                        fromto="0 0 0  0.04735 0.001308 -0.124669"
+                        size="0.024" material="left_mat" mass="0.648"/>
+
+                  <body name="wrist_L_1" pos="0.04735 0.001308 -0.124669">
+                    <joint name="elbow_pitch_l" type="hinge"
+                           axis="-0.984371 -0.029347 -0.173646"
+                           range="-1.57 1.57" damping="1.5"/>
+                    <geom name="forearm_l" type="capsule"
+                          fromto="0 0 0  -0.01 0 -0.08"
+                          size="0.021" material="left_mat" mass="0.37"/>
+                  </body>
+                </body>
+              </body>
+            </body>
+
+            <!-- ════════ RIGHT ARM ════════ -->
+            <body name="shoulder_pitch_R_1" pos="-0.142971 -0.003614 0.324503">
+              <joint name="shoulder_pitch_r" type="hinge"
+                     axis="0.999681 0.025268 0" range="-3.14159 3.14159"
+                     damping="3.0"/>
+              <geom name="shoulder_r" type="sphere" size="0.032"
+                    material="joint_mat" mass="0.929"/>
+
+              <body name="shoulder_roll_R_1" pos="-0.074977 -0.021651 0">
+                <joint name="shoulder_roll_r" type="hinge"
+                       axis="0.025268 -0.999681 0" range="-2.879793 0.174533"
+                       damping="2.0"/>
+                <geom name="upper_arm_r" type="capsule"
+                      fromto="0 0 0  -0.019419 0.023767 -0.106693"
+                      size="0.026" material="right_mat" mass="0.64"/>
+
+                <body name="bicep_R_1" pos="-0.019419 0.023767 -0.106693">
+                  <joint name="elbow_yaw_r" type="hinge"
+                         axis="-0.173593 -0.004388 -0.984808"
+                         range="-3.14159 3.14159" damping="1.5"/>
+                  <geom name="bicep_r" type="capsule"
+                        fromto="0 0 0  -0.047255 -0.002881 -0.124679"
+                        size="0.024" material="right_mat" mass="0.648"/>
+
+                  <body name="wrist_R_1" pos="-0.047255 -0.002881 -0.124679">
+                    <joint name="elbow_pitch_r" type="hinge"
+                           axis="-0.980548 -0.092247 0.173253"
+                           range="-1.57 1.57" damping="1.5"/>
+                    <geom name="forearm_r" type="capsule"
+                          fromto="0 0 0  0.01 0 -0.08"
+                          size="0.021" material="right_mat" mass="0.37"/>
+                  </body>
+                </body>
+              </body>
+            </body>
+
+          </body>
+        </body>
+      </body>
+
+    </body>
+  </worldbody>
+
+  <!-- ═══════════════ ACTUATORS ═══════════════
+       Position actuators (PD control) for all 23 joints.
+       ═══════════════════════════════════════════ -->
+  <actuator>
+    <!-- Root control for walking and preventing falling -->
+    <position name="act_root_x" joint="root_x" kp="5000" kv="500" ctrlrange="-100.0 100.0"/>
+    <position name="act_root_y" joint="root_y" kp="5000" kv="500" ctrlrange="-10.0 10.0"/>
+    <position name="act_root_z" joint="root_z" kp="5000" kv="500" ctrlrange="-10.0 10.0"/>
+    <position name="act_root_yaw" joint="root_yaw" kp="5000" kv="500" ctrlrange="-3.14 3.14"/>
+
+    <!-- Leg actuators (high gains for weight bearing) -->
+    <position name="act_hip_pitch_l"   joint="hip_pitch_l"   kp="1500" ctrlrange="-1.57 1.57"/>
+    <position name="act_hip_pitch_r"   joint="hip_pitch_r"   kp="1500" ctrlrange="-1.57 1.57"/>
+    <position name="act_thigh_roll_l"  joint="thigh_roll_l"  kp="1000" ctrlrange="-0.5 0.5"/>
+    <position name="act_thigh_roll_r"  joint="thigh_roll_r"  kp="1000" ctrlrange="-0.5 0.5"/>
+    <position name="act_thigh_yaw_l"   joint="thigh_yaw_l"   kp="1000" ctrlrange="-0.5 0.5"/>
+    <position name="act_thigh_yaw_r"   joint="thigh_yaw_r"   kp="1000" ctrlrange="-0.5 0.5"/>
+    <position name="act_knee_pitch_l"  joint="knee_pitch_l"  kp="4000" ctrlrange="-2.0 2.0"/>
+    <position name="act_knee_pitch_r"  joint="knee_pitch_r"  kp="4000" ctrlrange="-2.0 2.0"/>
+    <position name="act_ankle_pitch_l" joint="ankle_pitch_l" kp="2000" ctrlrange="-1.0 1.0"/>
+    <position name="act_ankle_pitch_r" joint="ankle_pitch_r" kp="2000" ctrlrange="-1.0 1.0"/>
+    <position name="act_ankle_roll_l"  joint="ankle_roll_l"  kp="1000"  ctrlrange="-0.5 0.5"/>
+    <position name="act_ankle_roll_r"  joint="ankle_roll_r"  kp="1000"  ctrlrange="-0.5 0.5"/>
+
+    <!-- Torso actuators -->
+    <position name="act_torso_pitch" joint="torso_pitch" kp="3000" ctrlrange="-1.57 1.57"/>
+    <position name="act_torso_roll"  joint="torso_roll"  kp="3000" ctrlrange="-1.57 1.57"/>
+    <position name="act_torso_yaw"   joint="torso_yaw"   kp="2000" ctrlrange="-1.57 1.57"/>
+
+    <!-- Arm actuators (lower gains — arms are lighter) -->
+    <position name="act_shoulder_pitch_l" joint="shoulder_pitch_l" kp="500" ctrlrange="-3.14159 3.14159"/>
+    <position name="act_shoulder_roll_l"  joint="shoulder_roll_l"  kp="500" ctrlrange="0 2.792527"/>
+    <position name="act_elbow_yaw_l"      joint="elbow_yaw_l"      kp="300" ctrlrange="-3.14159 3.14159"/>
+    <position name="act_elbow_pitch_l"    joint="elbow_pitch_l"    kp="300" ctrlrange="-1.57 1.57"/>
+    <position name="act_shoulder_pitch_r" joint="shoulder_pitch_r" kp="500" ctrlrange="-3.14159 3.14159"/>
+    <position name="act_shoulder_roll_r"  joint="shoulder_roll_r"  kp="500" ctrlrange="-2.879793 0.174533"/>
+    <position name="act_elbow_yaw_r"      joint="elbow_yaw_r"      kp="300" ctrlrange="-3.14159 3.14159"/>
+    <position name="act_elbow_pitch_r"    joint="elbow_pitch_r"    kp="300" ctrlrange="-1.57 1.57"/>
+
+    <!-- Head actuators -->
+    <position name="act_neck_pitch" joint="neck_pitch" kp="300" ctrlrange="-0.7 0.7"/>
+    <position name="act_neck_yaw"   joint="neck_yaw"   kp="300" ctrlrange="-1.2 1.2"/>
+  </actuator>
+
+</mujoco>

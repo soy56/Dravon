@@ -1,0 +1,10 @@
+venv/
+.venv/
+sim_venv/
+build/
+install/
+log/
+__pycache__/
+*.pyc
+*.tmp
+.DS_Store
